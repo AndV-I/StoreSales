@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 """
+#data = 'https://www.kaggle.com/c/store-sales-time-series-forecasting/data/'
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import zipfile
 from sklearn.linear_model import LinearRegression
 from statsmodels.tsa.deterministic import CalendarFourier, DeterministicProcess
-
-from pathlib import Path
-data_dir = Path('https://www.kaggle.com/c/store-sales-time-series-forecasting/data')
 
 with zipfile.ZipFile('store-sales-time-series-forecasting.zip', 'r' ) as sales_zip:
      train = pd.read_csv(sales_zip.extract('train.csv'),  
@@ -26,7 +25,7 @@ with zipfile.ZipFile('store-sales-time-series-forecasting.zip', 'r' ) as sales_z
                                                      parse_dates=['date'],
                                                      infer_datetime_format=True)
      df_test = pd.read_csv(sales_zip.extract('test.csv'),
-                           dtype={'store_nbr': 'category', 'family': 'category', 'onpromotion': 'uint32'},
+                           dtype={'store_nbr': 'category', 'family': 'category'},
                            parse_dates=['date'],
                            infer_datetime_format=True)
      
@@ -63,18 +62,15 @@ X = X.join(X_holidays, on='date').fillna(0.0)
 
 model = LinearRegression(fit_intercept=False)
 model.fit(X, y)
-y_pred = pd.DataFrame(model.predict(X), index=X.index, columns=y.columns)
+y_pred = pd.DataFrame(model.predict(X), index=X.index, columns=y.columns).clip(0.0)
 
 # Metrics
 from sklearn.metrics import r2_score, mean_squared_log_error, mean_squared_error
 print(f'Model R2 score:{r2_score(y, y_pred): .2f}')
 MSE = mean_squared_error(y, y_pred)
 print(f"Model RMSE score:{np.sqrt(MSE) : .3f}")
-
-# =============================================================================
-# RMSLE = np.sqrt(mean_squared_log_error(y, y_pred))
-# print(f"Model RMSLE score:{RMSLE : .3f}")# 
-# =============================================================================
+RMSLE = np.sqrt(mean_squared_log_error(y, y_pred))
+print(f"Model RMSLE score:{RMSLE : .3f}")# 
 
 # Plots
 y.columns
