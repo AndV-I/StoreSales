@@ -6,12 +6,14 @@ Created on Mon Oct 25 19:09:04 2021
 """
 import numpy as np
 import pandas as pd
+import joblib
 from statsmodels.tsa.deterministic import CalendarFourier, DeterministicProcess
 from sklearn.linear_model import ElasticNet, Lasso, Ridge
 from sklearn.preprocessing import LabelEncoder
-from sklearn.svm import SVR
+from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsRegressor
+#from sklearn.model_selection import TimeSeriesSplit, cross_val_score, cross_validate
 
 store_sales = pd.read_csv('train.csv',  
                          usecols=['store_nbr', 'family', 'date', 'sales', 'onpromotion'],
@@ -98,25 +100,30 @@ X2 = X2.reset_index('family')
 X2['family'] = le.fit_transform(X2['family'])
 X2["day"] = X2.index.day
 
-
 # Train boosted hybrid
-model = BoostedHybrid(model_1=Ridge(), model_2=RandomForestRegressor())
+model = BoostedHybrid(model_1=LinearRegression(), 
+                      model_2=RandomForestRegressor()
+)
 model.fit(X1, X2, y)
-y_pred = model.predict(X1, X2)
-y_pred = y_pred.clip(0.0)
+joblib.dump(model, 'Hybridpredictor.pkl')
+
+# Prediction
+y_pred = model.predict(X1, X2).clip(0.0)
+
+loaded_model = joblib.load('Hybridpredictor.pkl')
+y_pred = loaded_model.predict(X1, X2).clip(0.0)
 
 # Metrics
 from sklearn.metrics import r2_score, mean_squared_log_error, mean_squared_error
 print(f'Model R2 score:{r2_score(y, y_pred): .2f}')
 MSE = mean_squared_error(y, y_pred)
 print(f"Model RMSE score:{np.sqrt(MSE) : .3f}")
-
 RMSLE = np.sqrt(mean_squared_log_error(y, y_pred))
-print(f"Model RMSLE score:{RMSLE : .3f}")# 
+print(f"Model RMSLE score:{RMSLE : .3f}")
 
 # Plots
 y.columns
-filtr = ('sales', '1', 'AUTOMOTIVE')
+filtr = ('sales', '30', 'BEVERAGES')
 ax = y[filtr].plot(alpha=0.5, title="Sales", ylabel="items sold")
 ax = y_pred[filtr].plot(ax=ax, label="Prediction")
 ax.legend();

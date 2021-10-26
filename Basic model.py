@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import zipfile
 from sklearn.linear_model import LinearRegression
 from statsmodels.tsa.deterministic import CalendarFourier, DeterministicProcess
+from sklearn.model_selection import TimeSeriesSplit, cross_val_score, cross_validate
 
 with zipfile.ZipFile('store-sales-time-series-forecasting.zip', 'r' ) as sales_zip:
      train = pd.read_csv(sales_zip.extract('train.csv'),  
@@ -70,7 +71,17 @@ print(f'Model R2 score:{r2_score(y, y_pred): .2f}')
 MSE = mean_squared_error(y, y_pred)
 print(f"Model RMSE score:{np.sqrt(MSE) : .3f}")
 RMSLE = np.sqrt(mean_squared_log_error(y, y_pred))
-print(f"Model RMSLE score:{RMSLE : .3f}")# 
+print(f"Model RMSLE score:{RMSLE : .3f}")
+RMSLE = np.sqrt(mean_squared_log_error(y, y_pred))
+print(f"Model RMSLE score:{RMSLE : .3f}")
+
+# Cross validation
+cv = TimeSeriesSplit()
+mse_scores = cross_val_score(model, X.loc[:'2017-07'],y.loc[:'2017-07'], cv=cv,
+                         scoring='neg_mean_squared_error')
+mse_cv = mse_scores.mean()
+rmse_cv = np.sqrt(abs(mse_scores.mean()))
+print(f"Model cross_val_RMSE score:{rmse_cv : .3f}")
 
 # Plots
 y.columns
